@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>路由原理</title>
+</head>
+<body>
+    <button type="button" onclick="history.go(-1)">返回</button><br/>
+    push模式
+    <ul>
+        <!-- 这里点击的时候会触发Router里面的push方法，但是目前RouterClass里面还没有这个方法 -->
+        <li onclick="Router.push(baseUrl)">首页</li>
+        <li onclick="Router.push(baseUrl + '/news')">新闻</li>
+        <li onclick="Router.push(baseUrl + '/product')">产品</li>
+    </ul>
+    replace模式
+    <ul>
+        <!-- 这里点击的时候会触发Router里面的push方法，但是目前RouterClass里面还没有这个方法 -->
+        <li onclick="Router.replace(baseUrl)">首页</li>
+        <li onclick="Router.replace(baseUrl + '/news')">新闻</li>
+        <li onclick="Router.replace(baseUrl + '/product')">产品</li>
+    </ul>
+    <!-- 单页面容器，点击跳转之后页面放到app里面 -->
+    <div id='app'></div>
+</body>
+<script>
+    var app = document.getElementById('app') , baseUrl = '/router';
+    // 用面向对象的方法来写
+    function RouterClass(opts){
+        this.routes={};
+        this.curUrl = "";
+        //这里是在new的时候直接就给监听了
+        this.mode = "";
+        if(opts){
+            this.mode = opts.mode;
+            if(this.mode === 'history'){
+                this.eventHistoryRouter();
+            }else{
+                this.eventHashRouter();
+            }
+        }else{
+            this.eventHashRouter();
+        }
+
+    }
+
+    //1.这里算是一个前置工作，通过route方法构建一个对象，这个对象是routes
+    RouterClass.prototype.route = function(path , callback){
+        this.routes[path] = callback || function(){}
+        // this.routes[path]()
+        // 这里只是测试，不能在这里调用(因为在执行到route()方法的时候就会直接执行callback函数了，对应的app.innerHTML="新闻首页"这个内容就会添加进去)
+    }
+
+
+    //用原型链的方式给RouterClass传递一个push方法，这样在new之后就可以Router.push()找到这个方法了
+    //这就是一个匿名函数表达式的写法
+    //2.当触发点击事件的时候，会执行这里的push函数
+    RouterClass.prototype.push = function(url){
+        
+        //这个地方要去查一下
+        if(this.mode === 'history'){
+            window.history.pushState({},null,url)
+            //history模式下拿到路由
+            this.routes[url]()
+            //这里才是history模式点击动态匹配内容的地方
+        }else{
+            //这里的url就是push()传进来的参数
+            url = '#' + url
+        // console.log('url' , url)
+            window.location.href = url;
+            //hash模式下拿到路由
+        }
+        
+        
+    }
+    //replace模式
+    RouterClass.prototype.replace = function(url){
+       //这个地方要去查一下
+       if(this.mode === 'history'){
+            window.history.pushState({},null,url)
+            //history模式下拿到路由
+            this.routes[url]()
+        }else{
+            //这里的url就是push()传进来的参数
+            url = '#' + url
+        // console.log('url' , url)
+            window.location.replace(url);
+            //hash模式下拿到路由
+        }
+        
+    }
+
+
+    //hash模式
+    //监听hash模式路由
+    RouterClass.prototype.eventHashRouter = function(){
+        //3.hashchange监听路由改变，当路由改变的时候就会执行后面的hashRouter方法
+        window.addEventListener("load" , this.hashRouter.bind(this))
+        //监听刷新的时候去调用hashRouter方法
+        window.addEventListener("hashchange" , this.hashRouter.bind(this))
+        //addEventListener里面的this指向当前元素，也就是前面的window，所以在后面添加一个.bind(this)，让他的this指向RouterClass
+    }
+    //4.当hashRouter执行的时候，通过(window.location.hash)拿到对应的路由,然后调用route方法
+    RouterClass.prototype.hashRouter = function(){
+        this.curUrl = window.location.hash.slice(1) || baseUrl
+        console.log('this.curUrl' , this.curUrl)
+        // console.log(this.routes)
+        // 这里你就可以理解为找对象里面对应的属性名,然后执行函数（callback）,输出到app里面对应的内容
+        this.routes[this.curUrl]()
+    }
+
+
+    //history模式
+    //监听history模式(这tm是回退显示内容)
+    RouterClass.prototype.eventHistoryRouter = function(){
+        //3.hashchange监听路由改变，当路由改变的时候就会执行后面的hashRouter方法
+        window.addEventListener("load" , this.historyRouter.bind(this))
+        window.addEventListener("popstate" , this.historyRouter.bind(this))
+        //addEventListener里面的this指向当前元素，也就是前面的window，所以在后面添加一个.bind(this)，让他的this指向RouterClass
+    }
+
+    RouterClass.prototype.historyRouter = function(){
+        this.curUrl = window.location.pathname || baseUrl;
+        console.log(this.curUrl)
+        this.routes[this.curUrl]()
+        //请注意这里的history模式比较恶心，this.routes[this.curUrl]()这个是回退的时候匹配到的
+    }
+    //模式跳转页面
+
+
+    
+    
+    
+    
+
+
+    var Router = new RouterClass({
+        mode:"history"//hash:带#号，history:不带#号
+    })
+
+    //下面这个就是第一步里面构建routes对象的具体实现步骤，以及要包含的内容
+    Router.route(baseUrl , function(){
+        app.innerHTML="首页"
+    })
+    Router.route(baseUrl + '/news' , function(){
+        app.innerHTML="新闻首页"
+    })
+    Router.route(baseUrl + '/product' , function(){
+        app.innerHTML="产品首页"
+    })
+</script>
+</html>
