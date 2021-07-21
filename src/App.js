@@ -1,5 +1,5 @@
 import React from 'react'
-import RouterIndex from './router'
+import RouterIndex from './router2'
 
 
 // 这里修改成与Redux相关的接口（留到后面学Redux使用）
