@@ -1,6 +1,6 @@
 import React from 'react'
 import GoodsIndex from '../../components/index'
-import { Link } from 'react-router-dom'
+import { Link , Redirect} from 'react-router-dom'
 
 const GoodsScreen = (props) => {
     return (
